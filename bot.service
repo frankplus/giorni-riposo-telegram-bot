@@ -8,7 +8,7 @@ Group=mrfrank
 WorkingDirectory=/home/mrfrank/giorni-riposo-telegram-bot/
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/home/mrfrank/giorni-riposo-telegram-bot/bot.env
-ExecStart=/home/mrfrank/giorni-riposo-telegram-bot/python3 /home/mrfrank/giorni-riposo-telegram-bot/bot.py
+ExecStart=/home/mrfrank/giorni-riposo-telegram-bot/env/bin/python3 /home/mrfrank/giorni-riposo-telegram-bot/bot.py
 
 Restart=on-failure
 RestartSec=10s
