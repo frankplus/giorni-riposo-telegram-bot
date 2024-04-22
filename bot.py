@@ -14,7 +14,9 @@ logging.basicConfig(
 )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
+    await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                text="Questo bot ti aiuta a generare i giorni di riposo per i dipendenti. "\
+                                    "Usa il comando /genera per generare un nuovo programma settimanale.")
 
 async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     response = str(lib.generate_weekly_schedule())
