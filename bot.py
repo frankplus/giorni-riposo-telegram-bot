@@ -22,11 +22,16 @@ async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     response = str(lib.generate_weekly_schedule())
     await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
 
+async def vincoli(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    response = lib.describe_scheduling_constraints()
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
+
 if __name__ == '__main__':
     print(TOKEN)
     application = ApplicationBuilder().token(TOKEN).build()
     
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('genera', generate))
+    application.add_handler(CommandHandler('vincoli', vincoli))
     
     application.run_polling()

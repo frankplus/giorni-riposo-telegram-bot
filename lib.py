@@ -81,3 +81,21 @@ def generate_weekly_schedule():
         return weekly_schedule_to_string(weekly_schedule)
     else:
         return "No valid schedule found."
+
+def describe_scheduling_constraints():
+    # Extract data
+    employees = ', '.join(data['employees'])
+    days = ', '.join(data['days'])
+    same_day_pairs = ', '.join([' e '.join(pair) for pair in data['same_day_pairs']])
+    different_day_pairs = ', '.join([' e '.join(pair) for pair in data['different_day_pairs']])
+    
+    # Compose the message
+    message = (
+        f"I dipendenti del ristorante sono: {employees}. "
+        f"I giorni disponibili per il riposo sono: {days}. "
+        f"Ogni giorno, un massimo di 3 persone può riposare. "
+        f"Alcune coppie di dipendenti devono riposare lo stesso giorno: {same_day_pairs}. "
+        f"Altre coppie non devono riposare lo stesso giorno: {different_day_pairs}."
+    )
+    
+    return message
