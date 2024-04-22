@@ -1,13 +1,17 @@
 [Unit]
-Description=Sample Python System Service
+Description=Telegram Bot service for kiyomi_ristoro_bot
 
 [Service]
-WorkingDirectory=/usr/local/lib/bot/
+Type=simple
+User=mrfrank
+Group=mrfrank
+WorkingDirectory=/home/mrfrank/giorni-riposo-telegram-bot/
 Environment=PYTHONUNBUFFERED=1
-EnvironmentFile=/usr/local/etc/bot/bot.env
-ExecStart=/usr/local/lib/bot/venv/bin/python3 /usr/local/lib/bot/bot.py
+EnvironmentFile=/home/mrfrank/giorni-riposo-telegram-bot/bot.env
+ExecStart=/home/mrfrank/giorni-riposo-telegram-bot/python3 /home/mrfrank/giorni-riposo-telegram-bot/bot.py
 
 Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=default.target
