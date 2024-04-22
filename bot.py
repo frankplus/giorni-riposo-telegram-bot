@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
 #env variables
 import os
+import logging
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
+import lib
+
 TOKEN = os.getenv('TOKEN')
 
-# Enable logging
-import logging
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
-logger = logging.getLogger(__name__)
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
 
-from telegram import Update, chat
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text('hi')
-
-def main():
-    updater = Updater(TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
-    dispatcher.add_handler(CommandHandler("start", start))
-
-    updater.start_polling()
-    updater.idle()
+async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    response = str(lib.generate_weekly_schedule())
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
 
 if __name__ == '__main__':
-    main()
+    print(TOKEN)
+    application = ApplicationBuilder().token(TOKEN).build()
+    
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('genera', generate))
+    
+    application.run_polling()
