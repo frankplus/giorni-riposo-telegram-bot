@@ -1,5 +1,4 @@
 import random
-import itertools
 import os
 import json
 from constraint import Problem
@@ -28,13 +27,7 @@ def restore_data_or_default():
 
     return data
 
-data = restore_data_or_default()
-
-def set_employees(new_employees):
-    data["employees"] = new_employees
-    # Writing the updated data back to the file
-    with open('data.json', 'w') as f:
-        json.dump(data, f, indent=4)
+constraints_data = restore_data_or_default()
 
 def solve_rest_days():
 
@@ -45,24 +38,25 @@ def solve_rest_days():
     max_people_per_day = 3
 
     # Add variables for each employee, each can take any of the given days
-    for employee in data['employees']:
-        problem.addVariable(employee, data['days'])
+    for employee in constraints_data['employees']:
+        problem.addVariable(employee, constraints_data['days'])
 
     # Constraint: No more than max_people_per_day can rest on the same day
-    for day in data['days']:
-        problem.addConstraint(lambda *args, day=day: args.count(day) <= max_people_per_day, data['employees'])
+    for day in constraints_data['days']:
+        problem.addConstraint(lambda *args, day=day: args.count(day) <= max_people_per_day, constraints_data['employees'])
 
     # Constraint: Some pairs must rest on the same day
-    for pair in data['same_day_pairs']:
+    for pair in constraints_data['same_day_pairs']:
         problem.addConstraint(lambda x, y: x == y, pair)
 
     # Constraint: Some pairs must not rest on the same day
-    for pair in data['different_day_pairs']:
+    for pair in constraints_data['different_day_pairs']:
         problem.addConstraint(lambda x, y: x != y, pair)
 
     # Constraint: Fixed day preferences for some employees
-    for employee, day in data['preferences'].items():
-        problem.addConstraint(lambda x, day=day: x == day, [employee])
+    if 'preferences' in constraints_data:
+        for employee, day in constraints_data['preferences'].items():
+            problem.addConstraint(lambda x, day=day: x == day, [employee])
 
     # Get solutions
     solutions = problem.getSolutions()
@@ -72,7 +66,7 @@ def solve_rest_days():
 
 def schedule_dict_to_weekly_schedule(schedule_dict):
     # Convert the schedule dictionary to a weekly schedule
-    weekly_schedule = {day: [] for day in data["days"]}
+    weekly_schedule = {day: [] for day in constraints_data["days"]}
     for employee, day in schedule_dict.items():
         weekly_schedule[day].append(employee)
     return weekly_schedule
@@ -93,14 +87,17 @@ def generate_weekly_schedule():
 
 def describe_scheduling_constraints():
     # Extract data
-    employees = ', '.join(data['employees'])
-    days = ', '.join(data['days'])
-    same_day_pairs = ', '.join([' e '.join(pair) for pair in data['same_day_pairs']])
-    different_day_pairs = ', '.join([' e '.join(pair) for pair in data['different_day_pairs']])
+    employees = ', '.join(constraints_data['employees'])
+    days = ', '.join(constraints_data['days'])
+    same_day_pairs = ', '.join([' e '.join(pair) for pair in constraints_data['same_day_pairs']])
+    different_day_pairs = ', '.join([' e '.join(pair) for pair in constraints_data['different_day_pairs']])
 
     # Format preferences for easier readability in the output
-    preferences_list = [f"{employee} {day}" for employee, day in data['preferences'].items()]
-    preferences = ', '.join(preferences_list)
+    if 'preferences' in constraints_data:
+        preferences_list = [f"{employee} {day}" for employee, day in constraints_data['preferences'].items()]
+        preferences = ', '.join(preferences_list)
+    else:
+        preferences = "nessuna"
     
     # Compose the message
     message = (
@@ -113,3 +110,63 @@ def describe_scheduling_constraints():
     )
     
     return message
+
+# Process the constraints specified in natural language into a structured object
+def process_constraints_to_object(constraints_text):
+    # Define the API key and setup
+    from openai import OpenAI
+    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+    example_data = {
+        "employees": ["Lu", "Cri", "Ayi", "Ferdaus", "Islam", "Saiful", "Ashraful", "JD", "Hosen"],
+        "days": ["Lunedì", "Martedì", "Mercoledì", "Giovedì"],
+        "same_day_pairs": [["Ferdaus", "Saiful"]],
+        "different_day_pairs": [["Lu", "Cri"], ["Cri", "Ayi"], ["Ferdaus", "Islam"], ["Lu", "Islam"]],
+        "preferences": {"Cri": "Lunedì", "Ayi": "Martedì"}
+    }
+
+    example_output = str(example_data)
+
+    # Prepare the prompt for the language model
+    prompt = f"Translate the following problem constraints into a structured object in json format :\n\n{constraints_text}\n\n" \
+            f"The output should have the same structure of this example:\n\n{example_output}"
+    
+    print(prompt)
+
+    response = client.chat.completions.create(
+        model="gpt-4-turbo",
+        response_format={ "type": "json_object" },
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    # Assuming the response is correctly formatted in json format 
+    # convert it to a python object
+    response_message = response.choices[0].message.content
+
+    #check if the response is a valid json
+    try:
+        result_data = json.loads(response_message)
+        print("Valid JSON")
+    except json.JSONDecodeError:
+        print("Invalid JSON")
+        return None
+    
+    if 'employees' not in result_data or \
+        'days' not in result_data or \
+        'same_day_pairs' not in result_data or \
+        'different_day_pairs' not in result_data:
+
+        print("Invalid JSON")
+        return None
+
+    return result_data
+
+def set_new_constraints_data_from_text(constraints_text):
+    new_data = process_constraints_to_object(constraints_text)
+    if new_data:
+        global constraints_data
+        constraints_data = new_data
+        with open('data.json', 'w') as f:
+            json.dump(constraints_data, f, indent=4)
+        return True
+    return False
