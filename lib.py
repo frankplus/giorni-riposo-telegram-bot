@@ -2,26 +2,33 @@ import random
 import itertools
 import os
 import json
+from constraint import Problem
 
-data = {
-    "employees": ["Lu", "Cri", "Coli", "Ayi", "Ferdaus", "Islam", "Saiful", "Xili", "Ashraful", "JD", "Hosen"],
-    "days": ["Lunedì", "Martedì", "Mercoledì", "Giovedì"],
-    "same_day_pairs": [["Ferdaus", "Saiful"]],
-    "different_day_pairs": [["Lu", "Cri"], ["Coli", "Ayi"], ["Ferdaus", "Islam"]]
-}
+# Restore data containing problem constraints or set default data
+def restore_data_or_default():
+    # Path to the JSON file
+    file_path = 'data.json'
 
-# Path to the JSON file
-file_path = 'data.json'
+    # Check if the file exists
+    if os.path.exists(file_path):
+        # File exists, read and load the data
+        with open(file_path, 'r') as f:
+            restored_data = json.load(f)
+        print("Data restored successfully.")
+        data = restored_data
+    else:
+        print("The file does not exist. No data restored. Setting default data")
+        data = {
+            "employees": ["Lu", "Cri", "Ayi", "Ferdaus", "Islam", "Saiful", "Ashraful", "JD", "Hosen"],
+            "days": ["Lunedì", "Martedì", "Mercoledì", "Giovedì"],
+            "same_day_pairs": [["Ferdaus", "Saiful"]],
+            "different_day_pairs": [["Lu", "Cri"], ["Cri", "Ayi"], ["Ferdaus", "Islam"], ["Lu", "Islam"]],
+            "preferences": {"Cri": "Lunedì", "Ayi": "Martedì"}
+        }
 
-# Check if the file exists
-if os.path.exists(file_path):
-    # File exists, read and load the data
-    with open(file_path, 'r') as f:
-        restored_data = json.load(f)
-    print("Data restored successfully.")
-    data = restored_data
-else:
-    print("The file does not exist. No data restored.")
+    return data
+
+data = restore_data_or_default()
 
 def set_employees(new_employees):
     data["employees"] = new_employees
@@ -29,37 +36,39 @@ def set_employees(new_employees):
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=4)
 
-def valid_day_assignment(schedule, max_per_day=3):
-    # Check for max 3 people per day constraint
-    day_counts = {day: list(schedule.values()).count(day) for day in set(schedule.values())}
-    if any(count > max_per_day for count in day_counts.values()):
-        return False
-    return True
-
 def solve_rest_days():
-    # Generate all possible assignments
-    all_possible_schedules = itertools.product(data["days"], repeat=len(data["employees"]))
-    all_possible_schedules = list(all_possible_schedules)
-    random.shuffle(all_possible_schedules)
 
-    for schedule in all_possible_schedules:
-        schedule_dict = dict(zip(data["employees"], schedule))
+    # Initialize the problem
+    problem = Problem()
 
-        # Check same day constraints
-        if any(schedule_dict[a] != schedule_dict[b] for a, b in data["same_day_pairs"]):
-            continue
+    # Define the days and max number of people per day
+    max_people_per_day = 3
 
-        # Check different day constraints
-        if any(schedule_dict[a] == schedule_dict[b] for a, b in data["different_day_pairs"]):
-            continue
+    # Add variables for each employee, each can take any of the given days
+    for employee in data['employees']:
+        problem.addVariable(employee, data['days'])
 
-        # Check for max 3 people per day constraint
-        if not valid_day_assignment(schedule_dict):
-            continue
+    # Constraint: No more than max_people_per_day can rest on the same day
+    for day in data['days']:
+        problem.addConstraint(lambda *args, day=day: args.count(day) <= max_people_per_day, data['employees'])
 
-        return schedule_dict
+    # Constraint: Some pairs must rest on the same day
+    for pair in data['same_day_pairs']:
+        problem.addConstraint(lambda x, y: x == y, pair)
 
-    return None
+    # Constraint: Some pairs must not rest on the same day
+    for pair in data['different_day_pairs']:
+        problem.addConstraint(lambda x, y: x != y, pair)
+
+    # Constraint: Fixed day preferences for some employees
+    for employee, day in data['preferences'].items():
+        problem.addConstraint(lambda x, day=day: x == day, [employee])
+
+    # Get solutions
+    solutions = problem.getSolutions()
+
+    # return a solution randomly
+    return random.choice(solutions) if solutions else None
 
 def schedule_dict_to_weekly_schedule(schedule_dict):
     # Convert the schedule dictionary to a weekly schedule
@@ -88,6 +97,10 @@ def describe_scheduling_constraints():
     days = ', '.join(data['days'])
     same_day_pairs = ', '.join([' e '.join(pair) for pair in data['same_day_pairs']])
     different_day_pairs = ', '.join([' e '.join(pair) for pair in data['different_day_pairs']])
+
+    # Format preferences for easier readability in the output
+    preferences_list = [f"{employee} {day}" for employee, day in data['preferences'].items()]
+    preferences = ', '.join(preferences_list)
     
     # Compose the message
     message = (
@@ -95,7 +108,8 @@ def describe_scheduling_constraints():
         f"I giorni disponibili per il riposo sono: {days}. "
         f"Ogni giorno, un massimo di 3 persone può riposare. "
         f"Alcune coppie di dipendenti devono riposare lo stesso giorno: {same_day_pairs}. "
-        f"Altre coppie non devono riposare lo stesso giorno: {different_day_pairs}."
+        f"Altre coppie non devono riposare lo stesso giorno: {different_day_pairs}. "
+        f"Preferenze di giorni fissi: {preferences}."
     )
     
     return message
