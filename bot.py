@@ -37,6 +37,9 @@ async def modifica(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_new_constraints(update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_constraints = update.message.text
+
+    await update.message.reply_text('Sto aggiornando i vincoli...')
+
     result = lib.set_new_constraints_data_from_text(new_constraints)
     if result:
         await update.message.reply_text('Vincoli aggiornati.')
