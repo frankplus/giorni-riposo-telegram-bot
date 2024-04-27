@@ -3,6 +3,17 @@ import os
 import json
 from constraint import Problem
 
+def default_data():
+    data = {
+        "employees": ["Lu", "Cri", "Ayi", "Ferdaus", "Islam", "Saiful", "Ashraful", "JD", "Hosen", "Gelo"],
+        "days": ["Lunedì", "Martedì", "Mercoledì", "Giovedì"],
+        "max_rest_per_day": 3,
+        "same_day_pairs": [["Ferdaus", "Saiful"]],
+        "different_day_pairs": [["Lu", "Cri"], ["Cri", "Ayi"], ["Ferdaus", "Islam"], ["Lu", "Islam"]],
+        "preferences": {"Cri": "Lunedì", "Ayi": "Martedì", "Lu": "Mercoledì"}
+    }
+    return data
+
 # Restore data containing problem constraints or set default data
 def restore_data_or_default():
     # Path to the JSON file
@@ -17,13 +28,7 @@ def restore_data_or_default():
         data = restored_data
     else:
         print("The file does not exist. No data restored. Setting default data")
-        data = {
-            "employees": ["Lu", "Cri", "Ayi", "Ferdaus", "Islam", "Saiful", "Ashraful", "JD", "Hosen"],
-            "days": ["Lunedì", "Martedì", "Mercoledì", "Giovedì"],
-            "same_day_pairs": [["Ferdaus", "Saiful"]],
-            "different_day_pairs": [["Lu", "Cri"], ["Cri", "Ayi"], ["Ferdaus", "Islam"], ["Lu", "Islam"]],
-            "preferences": {"Cri": "Lunedì", "Ayi": "Martedì"}
-        }
+        data = default_data()
 
     return data
 
@@ -35,7 +40,7 @@ def solve_rest_days():
     problem = Problem()
 
     # Define the days and max number of people per day
-    max_people_per_day = 3
+    max_people_per_day = constraints_data['max_rest_per_day']
 
     # Add variables for each employee, each can take any of the given days
     for employee in constraints_data['employees']:
@@ -103,7 +108,7 @@ def describe_scheduling_constraints():
     message = (
         f"I dipendenti del ristorante sono: {employees}. "
         f"I giorni disponibili per il riposo sono: {days}. "
-        f"Ogni giorno, un massimo di 3 persone può riposare. "
+        f"Ogni giorno, un massimo di {constraints_data['max_rest_per_day']} persone può riposare. "
         f"Alcune coppie di dipendenti devono riposare lo stesso giorno: {same_day_pairs}. "
         f"Altre coppie non devono riposare lo stesso giorno: {different_day_pairs}. "
         f"Preferenze di giorni fissi: {preferences}."
@@ -117,15 +122,7 @@ def process_constraints_to_object(constraints_text):
     from openai import OpenAI
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-    example_data = {
-        "employees": ["Lu", "Cri", "Ayi", "Ferdaus", "Islam", "Saiful", "Ashraful", "JD", "Hosen"],
-        "days": ["Lunedì", "Martedì", "Mercoledì", "Giovedì"],
-        "same_day_pairs": [["Ferdaus", "Saiful"]],
-        "different_day_pairs": [["Lu", "Cri"], ["Cri", "Ayi"], ["Ferdaus", "Islam"], ["Lu", "Islam"]],
-        "preferences": {"Cri": "Lunedì", "Ayi": "Martedì"}
-    }
-
-    example_output = str(example_data)
+    example_output = str(default_data())
 
     # Prepare the prompt for the language model
     prompt = f"Translate the following problem constraints into a structured object in json format :\n\n{constraints_text}\n\n" \
